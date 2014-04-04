@@ -4,7 +4,6 @@ using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Kayak;
 using log4net;
 
 namespace HttpMock
@@ -19,7 +18,7 @@ namespace HttpMock
 			_filepath = filepath;
 		}
 
-		public IDisposable Connect(IDataConsumer channel) {
+		public IDisposable Connect(Stream outputStream) {
 			var fileInfo = new FileInfo(_filepath);
 			using(FileStream fileStream = fileInfo.Open(FileMode.Open, FileAccess.Read)) {
 				var buffer = new byte[fileInfo.Length];
@@ -37,11 +36,11 @@ namespace HttpMock
 						length = (to - from) +1;
 					}
 				}
-				ArraySegment<byte> data = new ArraySegment<byte>(buffer, offset, length);
-				channel.OnData(data, null);
 				
-				_log.DebugFormat("Wrote {0} bytes to buffer", data.Array.Length);
-				channel.OnEnd();
+				outputStream.WriteAsync(buffer, offset, length);
+				
+				_log.DebugFormat("Wrote {0} bytes to buffer", buffer.Length);
+				
 				return null;
 			}
 		}
@@ -51,7 +50,8 @@ namespace HttpMock
 		}
 	}
 
-	internal interface IResponse : IDataProducer {
+	public interface IResponse {
 		void SetRequestHeaders(IDictionary<string, string> requestHeaders);
+		IDisposable Connect(Stream outputStream);
 	}
 }

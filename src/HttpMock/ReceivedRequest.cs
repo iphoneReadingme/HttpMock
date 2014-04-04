@@ -1,6 +1,4 @@
-﻿using Kayak.Http;
-
-namespace HttpMock
+﻿namespace HttpMock
 {
     public class ReceivedRequest
     {

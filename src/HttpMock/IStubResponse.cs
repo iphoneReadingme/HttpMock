@@ -1,5 +1,3 @@
-using Kayak.Http;
-
 namespace HttpMock
 {
 	public interface IStubResponse

@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using Kayak;
-using Kayak.Http;
+
 
 namespace HttpMock
 {
@@ -24,19 +24,19 @@ namespace HttpMock
 			return this;
 		}
 
-		public IDataProducer BuildBody(IDictionary<string, string> headers) {
+		public IResponse BuildBody(IDictionary<string, string> headers) {
 			_response.SetRequestHeaders(headers);
 			return _response;
 		}
 
 		public HttpResponseHead BuildHeaders() {
-			AddHeader(HttpHeaderNames.ContentType, _contentType); 
-			AddHeader(HttpHeaderNames.ContentLength, _contentLength.ToString());
 
 			var headers = new HttpResponseHead
 			{
 				Status = string.Format("{0} {1}", (int)_httpStatusCode, _httpStatusCode),
-				Headers = _headers
+				Headers = _headers,
+				ContentType = _contentType,
+				ContentLength = _contentLength
 			};
 			return headers;
 

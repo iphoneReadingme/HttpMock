@@ -2,11 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Kayak;
 
 namespace HttpMock
 {
-	class BufferedConsumer : IDataConsumer
+	class BufferedConsumer 
 	{
 		List<ArraySegment<byte>> buffer = new List<ArraySegment<byte>>();
 		Action<string> resultCallback;

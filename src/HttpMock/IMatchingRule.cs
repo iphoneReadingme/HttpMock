@@ -1,4 +1,5 @@
-using Kayak.Http;
+using System.Net;
+
 
 namespace HttpMock
 {

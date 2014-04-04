@@ -189,6 +189,7 @@ namespace HttpMock.Integration.Tests
 			request.Method = "PURGE";
 			request.Host = "nonstandard.host";
 			request.Headers.Add("X-Go-Faster", "11");
+			request.ContentLength = 0;
 			using (var response = request.GetResponse())
 			using (var stream = response.GetResponseStream())
 			{

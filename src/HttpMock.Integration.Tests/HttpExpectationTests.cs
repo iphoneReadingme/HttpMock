@@ -77,11 +77,12 @@ namespace HttpMock.Integration.Tests
 		[Test]
 		public void Should_not_match_a_POST_request_was_made_with_a_body_that_doesnt_match_a_constraint()
 		{
-			var stubHttp = HttpMockRepository.At("http://localhost:90");
+			var stubHttp = HttpMockRepository.At(_hostUrl);
 			stubHttp.Stub(x => x.Post("/endpoint/handler")).Return("OK").OK();
 
 			string expectedData = "DUMMYPREFIX-postdata" + DateTime.Now;
-			new WebClient().UploadString("http://localhost:90/endpoint/handler", expectedData);
+			
+			new WebClient().UploadString(string.Format("{0}/endpoint/handler", _hostUrl), expectedData);
 
 			Assert.Throws<AssertionException>(() =>
 				stubHttp.AssertWasCalled(x => x.Post("/endpoint/handler"))
@@ -97,6 +98,7 @@ namespace HttpMock.Integration.Tests
 
 			var request = (HttpWebRequest) WebRequest.Create(_hostUrl + endPoint);
 			request.Method = "PUT";
+			request.ContentLength = 0;
 
 			using (request.GetResponse())
 			{
@@ -116,6 +118,7 @@ namespace HttpMock.Integration.Tests
 			var request = (HttpWebRequest) WebRequest.Create(_hostUrl + endPoint);
 			request.Method = "PUT";
 			request.Headers.Add("Waffle", "Pancake");
+			request.ContentLength = 0;
 
 			using (request.GetResponse())
 			{
@@ -134,6 +137,7 @@ namespace HttpMock.Integration.Tests
 
 			var request = (HttpWebRequest) WebRequest.Create(_hostUrl + endPoint);
 			request.Method = "PUT";
+			request.ContentLength = 0;
 			const string pancake = "Pancake";
 			request.Headers.Add("Waffle", pancake);
 

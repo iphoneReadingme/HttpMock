@@ -2,9 +2,8 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Security.Authentication.ExtendedProtection;
 using System.Threading;
-using Kayak;
-using Kayak.Http;
 using log4net;
 
 namespace HttpMock
@@ -14,57 +13,67 @@ namespace HttpMock
 		private readonly RequestProcessor _requestProcessor;
 		private readonly RequestWasCalled _requestWasCalled;
 		private readonly RequestWasNotCalled _requestWasNotCalled;
-		private readonly IScheduler _scheduler;
 		private readonly Uri _uri;
 		private IDisposable _disposableServer;
 		private static readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
 		private Thread _thread;
 		private readonly RequestHandlerFactory _requestHandlerFactory;
+		private HttpListener _httpListener;
 
 		public HttpServer(Uri uri) {
 			_uri = uri;
-			_scheduler = KayakScheduler.Factory.Create(new SchedulerDelegate());
 			_requestProcessor = new RequestProcessor(new EndpointMatchingRule(), new RequestHandlerList());
 			_requestWasCalled = new RequestWasCalled(_requestProcessor);
 			_requestWasNotCalled = new RequestWasNotCalled(_requestProcessor);
 			_requestHandlerFactory = new RequestHandlerFactory(_requestProcessor);
+			_httpListener = new HttpListener();
 		}
 
 		public void Start() {
-			_thread = new Thread(StartListening);
-			_thread.Start();
-			if (!IsAvailable()) {
+
+			_httpListener.Prefixes.Clear();
+			_httpListener.Prefixes.Add(_uri.ToString());
+			_httpListener.Start();
+
+			if (!IsAvailable())
+			{
 				throw new InvalidOperationException("Kayak server not listening yet.");
 			}
+
+			IAsyncResult asyncResult = _httpListener.BeginGetContext(AcceptRequest, _httpListener);
+			
+
+
+			
+			
 		}
 
-		public bool IsAvailable() {
-			const int timesToWait = 5;
-			int attempts = 0;
-			using (var tcpClient = new TcpClient()) {
-				while (attempts < timesToWait) {
-					try {
-						tcpClient.Connect(_uri.Host, _uri.Port);
-						return tcpClient.Connected;
-					} catch (SocketException) {}
+		private void AcceptRequest(IAsyncResult ar)
+		{
+			var listener = (HttpListener)ar.AsyncState;
+			var context = listener.EndGetContext(ar);
 
-					Thread.Sleep(100);
-					attempts++;
-				}
-				return false;
-			}
+			listener.BeginGetContext(AcceptRequest, listener);
+
+			HttpListenerRequest request = context.Request;
+			HttpListenerResponse response = context.Response;
+
+			_requestProcessor.Process(request, response);
+
+
 		}
 
-		public void Dispose() {
-			if (_scheduler != null)
+		public bool IsAvailable()
+		{
+			return _httpListener.IsListening;
+		}
+
+		public void Dispose()
+		{
+			if (_httpListener != null)
 			{
-				_scheduler.Stop();
-				_scheduler.Dispose();
-			}
-			if (_disposableServer != null)
-			{
-				_disposableServer.Dispose();
+				_httpListener.Stop();
 			}
 		}
 
@@ -92,36 +101,6 @@ namespace HttpMock
 
 		public string WhatDoIHave() {
 			return _requestProcessor.WhatDoIHave();
-		}
-
-		private void StartListening() {
-			try
-			{
-				var ipEndPoint = new IPEndPoint(IPAddress.Any, _uri.Port);
-				Exception e = null;
-				_scheduler.Post(() =>
-				{
-					try {
-						_disposableServer = KayakServer.Factory
-							.CreateHttp(_requestProcessor, _scheduler)
-							.Listen(ipEndPoint);
-
-					} catch(Exception ex)
-					{
-						e = ex;
-						_log.Error("Error when trying to post actions to the scheduler in StartListening", ex);
-					}
-				});
-
-				_scheduler.Start();
-				Thread.Sleep(100);
-				if (e != null)
-					throw e;
-
-			} catch(Exception ex)
-			{
-				_log.Error("Error when trying to StartListening", ex);
-			}
 		}
 	}
 }
